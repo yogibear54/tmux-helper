@@ -34,14 +34,14 @@ tmux-helper makes tmux more intuitive by bringing i3-window-manager-style keybin
 ### One-line Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lotus-creations/tmux-helper/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yogibear54/tmux-helper/main/install.sh | bash
 ```
 
 ### Manual Install
 
 ```bash
 # Clone the repo
-git clone https://github.com/lotus-creations/tmux-helper.git
+git clone git@github.com:yogibear54/tmux-helper.git
 cd tmux-helper
 
 # Run the installer (installs binary + config)
