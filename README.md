@@ -1,9 +1,18 @@
 # tmux-helper
 
+```
+     _                                _
+    (_) ___ _ __ __ _ _ __   __ _  ___| |__
+    | |/ _ \ '__/ _` | '_ \ / _` |/ __| '_ \
+    | |  __/ | | (_| | | | | (_| | (__| | | |
+    |_|\___|_|  \__,_|_| |_|\__,_|\___|_| |_|
+```
+
 **An i3-inspired tmux experience with intuitive keybindings and TUI overlays.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)]()
 
 ## Overview
 
@@ -18,6 +27,7 @@ tmux-helper makes tmux more intuitive by bringing i3-window-manager-style keybin
 - 🖱️ **Mouse Support** - Click to select panes
 - ⌨️ **Vim-style Navigation** - Navigate panes with h/j/k/l
 - 🚀 **Single Binary** - No dependencies, just drop and run
+- ⚙️ **Configurable** - Edit `~/.tmux-helper.conf` and regenerate
 
 ## Quick Start
 
@@ -34,10 +44,10 @@ curl -fsSL https://raw.githubusercontent.com/lotus-creations/tmux-helper/main/in
 git clone https://github.com/lotus-creations/tmux-helper.git
 cd tmux-helper
 
-# Run the installer
+# Run the installer (installs binary + config)
 ./install.sh
 
-# Or install manually:
+# Or do it manually:
 go build -o tmux-helper ./cmd/tmux-helper
 cp tmux-helper ~/.local/bin/
 ./tmux-helper apply
@@ -166,17 +176,17 @@ Opens a popup showing all keybindings:
 ## Command Line Interface
 
 ```bash
-tmux-helper --version      # Show version (v0.1.0)
-tmux-helper --help         # Show help
-tmux-helper picker         # Open session picker TUI (display-popup)
-tmux-helper help-overlay   # Open help overlay TUI (display-popup)
-tmux-helper sessions       # List all sessions (text output)
-tmux-helper layout         # Show current layout
-tmux-helper layout-next    # Cycle to next layout
-tmux-helper config show    # Show current configuration
-tmux-helper config set <k> <v>  # Set a config value
-tmux-helper apply          # Regenerate ~/.tmux.conf from config
-tmux-helper help           # Show keybindings (text, no popup)
+tmux-helper --version          # Show version (v0.1.0)
+tmux-helper --help             # Show help
+tmux-helper picker             # Open session picker TUI
+tmux-helper help-overlay       # Open help overlay TUI
+tmux-helper sessions           # List all sessions (text)
+tmux-helper layout             # Show current layout
+tmux-helper layout-next        # Cycle to next layout
+tmux-helper config show        # Show current configuration
+tmux-helper config set <k> <v> # Set a config value
+tmux-helper apply              # Regenerate ~/.tmux.conf
+tmux-helper help               # Show keybindings (text)
 ```
 
 ## Configuration
@@ -207,11 +217,11 @@ terminal=screen-256color
 ### Config Commands
 
 ```bash
-tmux-helper config show      # View current config
-tmux-helper config get <key>  # Get a specific value
+tmux-helper config show           # View current config
+tmux-helper config get <key>     # Get a specific value
 tmux-helper config set <key> <value>  # Set a value
-tmux-helper config edit      # Edit in $EDITOR
-tmux-helper apply            # Regenerate ~/.tmux.conf
+tmux-helper config edit          # Edit in $EDITOR
+tmux-helper apply                # Regenerate ~/.tmux.conf
 ```
 
 ### Workflow
@@ -227,35 +237,28 @@ tmux-helper apply            # Regenerate ~/.tmux.conf
 ```
 tmux-helper/
 ├── cmd/tmux-helper/
-│   └── main.go              # CLI entry point (v0.1.0)
+│   └── main.go                  # CLI entry point (v0.1.0)
 ├── internal/
 │   ├── tmux/
-│   │   ├── client.go       # tmux CLI wrapper
-│   │   ├── model.go        # Session/Window/Pane structs
-│   │   └── errors.go       # Error handling & notifications
+│   │   ├── client.go           # tmux CLI wrapper
+│   │   ├── model.go            # Session/Window/Pane structs
+│   │   └── errors.go           # Notifications & error handling
 │   ├── config/
-│   │   ├── config.go       # Configuration system
-│   │   └── generate.go      # tmux.conf template generator
+│   │   ├── config.go           # Config loading/saving/validation
+│   │   └── generate.go         # tmux.conf template generator
 │   └── ui/
-│       ├── common.go       # Shared UI components
-│       ├── picker.go        # Session picker TUI (Bubble Tea)
-│       └── help.go          # Help overlay TUI (Bubble Tea)
-├── .tmux.conf              # tmux keybindings (generated)
+│       ├── common.go           # Shared UI styles
+│       ├── picker.go           # Session picker (Purple TUI)
+│       └── help.go             # Help overlay (Green TUI)
+├── install.sh                   # Installation script
+├── build-release.sh             # Release builder
+├── .github/workflows/           # CI/CD
+│   ├── ci.yml                  # Continuous integration
+│   └── release.yml             # Auto-release on tags
+├── .tmux.conf                  # Generated tmux config
 ├── go.mod
 └── README.md
 ```
-
-### Components
-
-| Component | Description |
-|-----------|-------------|
-| **client.go** | Wraps tmux CLI for session/window/pane operations |
-| **model.go** | Session, Window, Pane structs with parsers |
-| **errors.go** | Error handling, tmux notifications (✓, ✗, ℹ) |
-| **config.go** | Configuration loading/saving/validation |
-| **generate.go** | Template-based tmux.conf generator |
-| **picker.go** | Purple-themed Bubble Tea TUI for session picking |
-| **help.go** | Green-themed Bubble Tea TUI for help overlay |
 
 ## Development
 
@@ -290,13 +293,15 @@ tmux kill-server
 
 ### Phases
 
-- [x] Phase 1: Foundation (Go project, tmux client, .tmux.conf)
-- [x] Phase 2: Session/Window Quick Picker (Bubble Tea TUI + display-popup)
-- [x] Phase 3: Layout Cycling (built into tmux)
-- [x] Phase 4: Help Overlay (Bubble Tea TUI + display-popup)
-- [x] Phase 5: Configuration System (config file, generate tmux.conf)
-- [x] Phase 6: Polish & Error Handling (notifications, edge cases, version)
-- [x] Phase 7: Installer & Distribution (install.sh, release workflow) ✅ COMPLETE
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ | Foundation (Go project, tmux client, .tmux.conf) |
+| Phase 2 | ✅ | Session Picker (Bubble Tea TUI + display-popup) |
+| Phase 3 | ✅ | Layout Cycling (built into tmux) |
+| Phase 4 | ✅ | Help Overlay (Bubble Tea TUI + display-popup) |
+| Phase 5 | ✅ | Configuration System (config file, generate tmux.conf) |
+| Phase 6 | ✅ | Polish & Error Handling (notifications, edge cases, version) |
+| Phase 7 | ✅ | Installer & Distribution (install.sh, release workflow) |
 
 ## i3 Comparison
 
@@ -315,29 +320,23 @@ tmux kill-server
 
 ### "tmux-helper: command not found"
 ```bash
-# Make sure the binary is in your PATH
-export PATH=$PATH:~/.local/bin
-
-# Or use full path
-~/.local/bin/tmux-helper picker
+export PATH="$PATH:$HOME/.local/bin"
 ```
 
 ### tmux not responding to keybindings
 ```bash
-# Reload the configuration
 tmux source-file ~/.tmux.conf
 ```
 
 ### TUI popups won't open
-Make sure you're running inside tmux (the TUI requires a TTY). Also verify your tmux version supports `display-popup`:
+Make sure your tmux version supports `display-popup`:
 
 ```bash
-tmux -V  # Should be 3.3 or newer for display-popup
+tmux -V  # Should be 3.3 or newer
 ```
 
 ### Mouse not working
 ```bash
-# Enable mouse mode
 tmux set -g mouse on
 ```
 
@@ -367,7 +366,7 @@ git push origin v0.1.0
 
 | File | Description |
 |------|-------------|
-| `tmux-helper-X.Y.Z` | Static binary |
+| `tmux-helper-X.Y.Z` | Static binary (4.5MB) |
 | `tmux-helper-X.Y.Z.sha256` | SHA256 checksum |
 | `install.sh` | Installation script |
 | `README.md` | Documentation |

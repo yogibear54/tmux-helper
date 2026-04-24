@@ -50,14 +50,20 @@ EOF
 check_requirements() {
     info "Checking requirements..."
 
-    # Check for Go
+    # Check for Go (try PATH first, then known locations)
+    GO_CMD=""
     if command -v go &> /dev/null; then
-        GO_VERSION=$(go version | grep -oP '\d+\.\d+' | head -1)
-        success "Go ${GO_VERSION} found"
-    else
+        GO_CMD="go"
+    elif [ -x "/usr/local/go/bin/go" ]; then
+        GO_CMD="/usr/local/go/bin/go"
+    fi
+    
+    if [ -z "$GO_CMD" ]; then
         error "Go not found. Please install Go 1.21+"
         exit 1
     fi
+    GO_VERSION=$($GO_CMD version | grep -oP '\d+\.\d+' | head -1)
+    success "Go ${GO_VERSION} found"
 
     # Check for tmux
     if command -v tmux &> /dev/null; then
@@ -84,20 +90,28 @@ install_binary() {
     # Determine script location
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    # Check if we're running from source
+    # Check if we're running from source (look in multiple places)
     if [ -f "${SCRIPT_DIR}/tmux-helper" ]; then
+        # Binary in root directory
+        info "Installing from root directory..."
+        cp "${SCRIPT_DIR}/tmux-helper" "${INSTALL_DIR}/tmux-helper"
+        success "Installed from root directory"
+    elif [ -f "${SCRIPT_DIR}/release/tmux-helper-${VERSION}" ]; then
+        # Binary in release directory
+        info "Installing from release directory..."
+        cp "${SCRIPT_DIR}/release/tmux-helper-${VERSION}" "${INSTALL_DIR}/tmux-helper"
+        success "Installed from release"
+    elif [ -f "${SCRIPT_DIR}/release/tmux-helper" ]; then
+        # Binary in release directory (without version)
+        info "Installing from release directory..."
+        cp "${SCRIPT_DIR}/release/tmux-helper" "${INSTALL_DIR}/tmux-helper"
+        success "Installed from release"
+    else
+        # Build from source
         info "Building from source..."
-        (cd "${SCRIPT_DIR}" && go build -o tmux-helper ./cmd/tmux-helper)
+        (cd "${SCRIPT_DIR}" && /usr/local/go/bin/go build -o tmux-helper ./cmd/tmux-helper)
         cp "${SCRIPT_DIR}/tmux-helper" "${INSTALL_DIR}/tmux-helper"
         success "Built and installed from source"
-    elif [ -f "${SCRIPT_DIR}/tmux-helper-${VERSION}" ]; then
-        info "Installing pre-built binary..."
-        cp "${SCRIPT_DIR}/tmux-helper-${VERSION}" "${INSTALL_DIR}/tmux-helper"
-        success "Installed pre-built binary"
-    else
-        error "Could not find tmux-helper binary"
-        info "Please run this script from the tmux-helper directory"
-        exit 1
     fi
 
     # Make executable
