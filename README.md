@@ -171,12 +171,60 @@ Opens a popup showing all keybindings:
 ## Command Line Interface
 
 ```bash
+tmux-helper --version      # Show version (v0.1.0)
+tmux-helper --help         # Show help
 tmux-helper picker         # Open session picker TUI (display-popup)
 tmux-helper help-overlay   # Open help overlay TUI (display-popup)
 tmux-helper sessions       # List all sessions (text output)
 tmux-helper layout         # Show current layout
 tmux-helper layout-next    # Cycle to next layout
+tmux-helper config show    # Show current configuration
+tmux-helper config set <k> <v>  # Set a config value
+tmux-helper apply          # Regenerate ~/.tmux.conf from config
 tmux-helper help           # Show keybindings (text, no popup)
+```
+
+## Configuration
+
+Customize tmux-helper by editing `~/.tmux-helper.conf`:
+
+```bash
+# ~/.tmux-helper.conf
+prefix=C-a
+split-vertical-size=0.50
+split-horizontal-size=0.50
+mouse=true
+theme=purple
+terminal=screen-256color
+```
+
+### Configurable Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `prefix` | `C-a` | Command prefix key |
+| `split-vertical-size` | `0.50` | Vertical split size (0.1-0.9) |
+| `split-horizontal-size` | `0.50` | Horizontal split size (0.1-0.9) |
+| `mouse` | `true` | Enable mouse support |
+| `theme` | `purple` | UI theme (purple/green) |
+| `terminal` | `screen-256color` | Terminal type |
+
+### Config Commands
+
+```bash
+tmux-helper config show      # View current config
+tmux-helper config get <key>  # Get a specific value
+tmux-helper config set <key> <value>  # Set a value
+tmux-helper config edit      # Edit in $EDITOR
+tmux-helper apply            # Regenerate ~/.tmux.conf
+```
+
+### Workflow
+
+```bash
+1. Edit ~/.tmux-helper.conf (or use `config set`)
+2. Run `tmux-helper apply`
+3. Run `tmux source-file ~/.tmux.conf`
 ```
 
 ## Architecture
@@ -184,18 +232,20 @@ tmux-helper help           # Show keybindings (text, no popup)
 ```
 tmux-helper/
 ├── cmd/tmux-helper/
-│   └── main.go              # CLI entry point
+│   └── main.go              # CLI entry point (v0.1.0)
 ├── internal/
 │   ├── tmux/
 │   │   ├── client.go       # tmux CLI wrapper
-│   │   └── model.go        # Session/Window/Pane structs
+│   │   ├── model.go        # Session/Window/Pane structs
+│   │   └── errors.go       # Error handling & notifications
 │   ├── config/
-│   │   └── config.go       # Configuration system
+│   │   ├── config.go       # Configuration system
+│   │   └── generate.go      # tmux.conf template generator
 │   └── ui/
 │       ├── common.go       # Shared UI components
-│       ├── picker.go       # Session picker TUI (Bubble Tea)
-│       └── help.go         # Help overlay TUI (Bubble Tea)
-├── .tmux.conf              # tmux keybindings
+│       ├── picker.go        # Session picker TUI (Bubble Tea)
+│       └── help.go          # Help overlay TUI (Bubble Tea)
+├── .tmux.conf              # tmux keybindings (generated)
 ├── go.mod
 └── README.md
 ```
@@ -206,10 +256,11 @@ tmux-helper/
 |-----------|-------------|
 | **client.go** | Wraps tmux CLI for session/window/pane operations |
 | **model.go** | Session, Window, Pane structs with parsers |
-| **config.go** | User preferences (placeholder for future config) |
+| **errors.go** | Error handling, tmux notifications (✓, ✗, ℹ) |
+| **config.go** | Configuration loading/saving/validation |
+| **generate.go** | Template-based tmux.conf generator |
 | **picker.go** | Purple-themed Bubble Tea TUI for session picking |
 | **help.go** | Green-themed Bubble Tea TUI for help overlay |
-| **.tmux.conf** | i3-inspired keybindings, uses `display-popup` for TUIs |
 
 ## Development
 
@@ -248,8 +299,8 @@ tmux kill-server
 - [x] Phase 2: Session/Window Quick Picker (Bubble Tea TUI + display-popup)
 - [x] Phase 3: Layout Cycling (built into tmux)
 - [x] Phase 4: Help Overlay (Bubble Tea TUI + display-popup)
-- [ ] Phase 5: Configuration System
-- [ ] Phase 6: Polish & Error Handling
+- [x] Phase 5: Configuration System (config file, generate tmux.conf)
+- [x] Phase 6: Polish & Error Handling (notifications, edge cases, version)
 - [ ] Phase 7: Installer & Distribution
 
 ## i3 Comparison

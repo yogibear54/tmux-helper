@@ -13,7 +13,21 @@ import (
 	"github.com/lotus-creations/tmux-helper/internal/ui"
 )
 
+const version = "0.1.0"
+
 func main() {
+	// Handle --help and --version flags
+	if len(os.Args) == 2 {
+		switch os.Args[1] {
+		case "--help", "-h":
+			printUsage()
+			os.Exit(0)
+		case "--version", "-v":
+			fmt.Printf("tmux-helper version %s\n", version)
+			os.Exit(0)
+		}
+	}
+
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
@@ -37,27 +51,41 @@ func main() {
 
 	case "layout-next":
 		if err := client.NextLayout(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error cycling layout: %v\n", err)
+			notifyError("Failed to cycle layout")
 			os.Exit(1)
 		}
 
 	case "layout-prev":
 		layout := client.GetCurrentLayout()
+		if layout == "" {
+			fmt.Fprintln(os.Stderr, "Error: No tmux session active")
+			notifyError("No tmux session active")
+			os.Exit(1)
+		}
 		fmt.Println("Current layout:", layout)
 		fmt.Println("(Use layout-next to cycle)")
 
 	case "layout":
 		layout := client.GetCurrentLayout()
+		if layout == "" {
+			fmt.Fprintln(os.Stderr, "Error: No tmux session active")
+			notifyError("No tmux session active")
+			os.Exit(1)
+		}
 		fmt.Println(layout)
 
 	case "sessions":
 		listSessions()
 
+	case "version", "ver":
+		fmt.Printf("tmux-helper version %s\n", version)
+
 	case "help", "?":
 		printHelp()
 
 	default:
-		fmt.Printf("Unknown command: %s\n\n", command)
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
 		printUsage()
 		os.Exit(1)
 	}
@@ -67,6 +95,7 @@ func handleConfig(args []string) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		notifyError("Failed to load config")
 		os.Exit(1)
 	}
 
@@ -156,6 +185,7 @@ func handleConfig(args []string) {
 
 		if err := config.SaveConfig(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving config: %v\n", err)
+			notifyError("Failed to save config")
 			os.Exit(1)
 		}
 		fmt.Printf("Updated %s = %s\n", key, value)
@@ -185,16 +215,23 @@ func handleApply() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		notifyError("Failed to load config")
 		os.Exit(1)
 	}
 
 	if err := config.Validate(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid config: %v\n", err)
+		notifyError("Invalid config")
 		os.Exit(1)
 	}
 
 	// Generate tmux.conf
 	content := cfg.TmuxConfig()
+	if content == "" {
+		fmt.Fprintln(os.Stderr, "Error: Failed to generate tmux.conf")
+		notifyError("Failed to generate tmux.conf")
+		os.Exit(1)
+	}
 	
 	// Save to ~/.tmux.conf
 	usr, _ := user.Current()
@@ -202,6 +239,7 @@ func handleApply() {
 	
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing ~/.tmux.conf: %v\n", err)
+		notifyError("Failed to write tmux.conf")
 		os.Exit(1)
 	}
 
@@ -210,32 +248,60 @@ func handleApply() {
 }
 
 func execCmd(name string, args ...string) {
-	// Simple exec wrapper
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running %s: %v\n", name, err)
+		os.Exit(1)
+	}
+}
+
+// notifyError shows error in tmux status bar if available
+func notifyError(msg string) {
+	if os.Getenv("TMUX") != "" {
+		tmux.NotifyError(msg)
+	}
 }
 
 func printUsage() {
-	fmt.Println("Usage: tmux-helper <command>")
-	fmt.Println("")
-	fmt.Println("Commands:")
-	fmt.Println("  picker       Open interactive session picker")
-	fmt.Println("  help-overlay Show help in popup")
-	fmt.Println("  config       Show/set configuration")
-	fmt.Println("  apply        Regenerate ~/.tmux.conf from config")
-	fmt.Println("  layout       Show current layout")
-	fmt.Println("  layout-next  Cycle to next layout")
-	fmt.Println("  sessions     List all sessions")
-	fmt.Println("  help         Show keybindings (text)")
-	fmt.Println("")
-	fmt.Println("Config commands:")
-	fmt.Println("  config show         Show current config")
-	fmt.Println("  config set <k> <v>  Set a config value")
-	fmt.Println("  config get <k>       Get a config value")
-	fmt.Println("  config edit          Edit config in $EDITOR")
+	fmt.Printf(`tmux-helper %s - i3-inspired tmux keybindings and TUI tools
+
+Usage: tmux-helper <command>
+
+Commands:
+  picker         Open interactive session picker (TUI popup)
+  help-overlay   Show help overlay (TUI popup)
+  config         Show/set configuration
+  apply          Regenerate ~/.tmux.conf from config
+  layout         Show current layout
+  layout-next    Cycle to next layout
+  sessions       List all sessions
+  version        Show version
+  help           Show this help
+
+Config commands:
+  config show         Show current config
+  config set <k> <v>  Set a config value
+  config get <k>      Get a config value
+  config edit         Edit config in $EDITOR
+
+Keybindings (Prefix: Ctrl-a):
+  ?             Help overlay
+  F             Session picker
+  h/j/k/l       Navigate panes (vim-style)
+  |             Split left/right
+  -             Split top/bottom
+  Space         Cycle layout
+  c             New window
+  d             Detach
+  x             Kill pane
+  X             Kill window
+
+Run 'tmux-helper help' for keybindings reference.
+Run 'tmux-helper --version' for version info.
+`, version)
 }
 
 func printHelp() {
@@ -289,7 +355,8 @@ func listSessions() {
 			fmt.Println("No tmux sessions running")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error listing sessions: %v\n", err)
+		notifyError("Failed to list sessions")
 		os.Exit(1)
 	}
 

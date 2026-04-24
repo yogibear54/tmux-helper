@@ -244,10 +244,26 @@ func (p *Picker) selectItem(item PickerItem) {
 func (p *Picker) renderList() string {
 	var lines []string
 
-	if len(p.filtered) == 0 {
+	// Check for no tmux running
+	if len(p.sessions) == 0 {
+		warningStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#F59E0B")).
+			Bold(true)
+		lines = append(lines, warningStyle.Render("  ⚠ No tmux sessions running"))
 		lines = append(lines, lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#6B7280")).
-			Render("  No sessions found. Press Esc to exit."))
+			Render("  Start tmux with: tmux new -s <name>"))
+		lines = append(lines, lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			Render("  Press Esc to exit"))
+	} else if len(p.filtered) == 0 {
+		// Sessions exist but filtered results are empty
+		lines = append(lines, lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			Render("  No matching sessions"))
+		lines = append(lines, lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			Render("  Try a different filter or press Ctrl+U to clear"))
 	} else {
 		for i, item := range p.filtered {
 			var prefix, name, suffix string
