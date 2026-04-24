@@ -21,38 +21,33 @@ tmux-helper makes tmux more intuitive by bringing i3-window-manager-style keybin
 
 ## Quick Start
 
-### 1. Install tmux-helper
+### One-line Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lotus-creations/tmux-helper/main/install.sh | bash
+```
+
+### Manual Install
 
 ```bash
 # Clone the repo
 git clone https://github.com/lotus-creations/tmux-helper.git
 cd tmux-helper
 
-# Build
+# Run the installer
+./install.sh
+
+# Or install manually:
 go build -o tmux-helper ./cmd/tmux-helper
-
-# Install binary
 cp tmux-helper ~/.local/bin/
+./tmux-helper apply
+tmux source-file ~/.tmux.conf
 ```
 
-### 2. Copy the tmux configuration
+### Restart tmux
 
 ```bash
-# Backup your existing config (optional)
-cp ~/.tmux.conf ~/.tmux.conf.backup
-
-# Link the new config
-ln -sf $(pwd)/.tmux.conf ~/.tmux.conf
-```
-
-### 3. Restart tmux
-
-```bash
-# If tmux is running, restart it
-tmux kill-server
-
-# Start a new tmux session
-tmux
+tmux kill-server && tmux
 ```
 
 ## Keybindings
@@ -301,7 +296,7 @@ tmux kill-server
 - [x] Phase 4: Help Overlay (Bubble Tea TUI + display-popup)
 - [x] Phase 5: Configuration System (config file, generate tmux.conf)
 - [x] Phase 6: Polish & Error Handling (notifications, edge cases, version)
-- [ ] Phase 7: Installer & Distribution
+- [x] Phase 7: Installer & Distribution (install.sh, release workflow) ✅ COMPLETE
 
 ## i3 Comparison
 
@@ -352,6 +347,30 @@ tmux set -g mouse on
 - **tmux 3.3+** - Required for `display-popup` support
 - **Bubble Tea** - TUI framework (charmbracelet/bubbletea)
 - **Lipgloss** - Styling library (charmbracelet/lipgloss)
+
+## Releases
+
+### Creating a Release
+
+```bash
+# Build and package
+./build-release.sh 0.1.0
+
+# Create git tag
+git tag v0.1.0
+git push origin v0.1.0
+
+# GitHub Actions will build and create a draft release
+```
+
+### Release Assets
+
+| File | Description |
+|------|-------------|
+| `tmux-helper-X.Y.Z` | Static binary |
+| `tmux-helper-X.Y.Z.sha256` | SHA256 checksum |
+| `install.sh` | Installation script |
+| `README.md` | Documentation |
 
 ## License
 

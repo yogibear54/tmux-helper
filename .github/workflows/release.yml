@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build
+        env:
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
+                   -o tmux-helper-${{ steps.version.outputs.VERSION }} \
+                   ./cmd/tmux-helper
+
+      - name: Create checksums
+        run: sha256sum tmux-helper-* > tmux-helper-${{ steps.version.outputs.VERSION }}.sha256
+
+      - name: Make installer executable
+        run: chmod +x install.sh
+
+      - name: Upload assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            tmux-helper-${{ steps.version.outputs.VERSION }}
+            tmux-helper-${{ steps.version.outputs.VERSION }}.sha256
+            install.sh
+            README.md
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
