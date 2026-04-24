@@ -1,0 +1,190 @@
+package config
+
+import (
+	"fmt"
+	"strings"
+	"text/template"
+)
+
+// TmuxConfig returns the tmux.conf content generated from config
+func (c *Config) TmuxConfig() string {
+	content, _ := c.TmuxConfigWithError()
+	return content
+}
+
+// TmuxConfigWithError returns the tmux.conf content or an error
+func (c *Config) TmuxConfigWithError() (string, error) {
+	// Calculate split sizes in cells (approximate percentages)
+	vSize := int(c.SplitVerticalSize * 100)
+	hSize := int(c.SplitHorizontalSize * 100)
+	
+	tmpl := `# tmux-helper configuration
+# Generated from ~/.tmux-helper.conf - DO NOT EDIT MANUALLY
+# Run 'tmux-helper apply' to regenerate
+
+# =============================================================================
+# PREFIX KEY - {{.Prefix}} (like screen, i3-friendly)
+# =============================================================================
+
+# Unbind default prefix
+unbind C-b
+
+# Set new prefix
+set -g prefix {{.Prefix}}
+
+# Allow {{.Prefix}} to send {{.Prefix}} to other apps (double-tap to send)
+bind {{.Prefix}} send-prefix
+
+# =============================================================================
+# MOUSE MODE - i3-style mouse support
+{{if .Mouse}}
+set -g mouse on
+
+# Click to select pane
+bind -T root MouseDown1Pane select-pane -t =
+{{else}}
+set -g mouse off
+{{end}}
+
+# =============================================================================
+# VIM-STYLE PANE NAVIGATION - i3 hjkl equivalent
+# =============================================================================
+
+# Vim-style pane navigation with {{.Prefix}} prefix
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# =============================================================================
+# SPLITS - Prefix + | or -
+# =============================================================================
+
+# Vertical split (left/right) - | is a vertical line
+bind | split-window -h -l {{vSize}} -c "#{pane_current_path}"
+
+# Horizontal split (top/bottom) - - is a horizontal line
+bind - split-window -v -l {{hSize}} -c "#{pane_current_path}"
+
+# =============================================================================
+# LAYOUT CYCLING - Similar to i3 workspace switching
+# =============================================================================
+
+# Cycle next layout ({{.Prefix}} + Space)
+bind Space next-layout
+
+# =============================================================================
+# SESSION/WINDOW MANAGEMENT
+# =============================================================================
+
+# Quick session picker (opens in tmux popup)
+bind F display-popup -d "#{pane_current_path}" "tmux-helper picker"
+
+# New window
+bind c new-window
+
+# Kill pane
+bind x kill-pane
+
+# Kill window
+bind X kill-window
+
+# Detach
+bind d detach
+
+# =============================================================================
+# PANE MANAGEMENT
+# =============================================================================
+
+# Break pane into new window
+bind ! break-pane
+
+# Join pane into current window (prompts for source)
+bind p command-prompt -p "Join pane from:" "join-pane -s '%%'"
+
+# Swap pane with adjacent (shift + direction)
+bind -r H swap-pane -t '{left-of}'
+bind -r J swap-pane -t '{down-of}'
+bind -r K swap-pane -t '{up-of}'
+bind -r L swap-pane -t '{right-of}'
+
+# =============================================================================
+# STATUS LINE - i3-inspired minimal
+# =============================================================================
+
+set -g status-style 'bg=colour235,fg=colour255'
+set -g status-left ' #[fg=colour39]#S#[default] '
+set -g status-right ' #[fg=colour245]%H:%M '
+set -g status-interval 1
+
+# Window status
+set -g window-status-format ' #I:#W '
+set -g window-status-current-format ' #I:#W '
+set -g window-status-current-style 'fg=colour39,bg=colour238'
+set -g window-status-style 'fg=colour245'
+
+# =============================================================================
+# LOOK & FEEL
+# =============================================================================
+
+# Enable 256 colors
+set -g default-terminal "{{.Terminal}}"
+
+# Aggressive resize (instant)
+set -g aggressive-resize on
+
+# Start window index at 1 (like i3 workspaces)
+set -g base-index 1
+setw -g pane-base-index 1
+
+# Rename windows automatically
+set -g automatic-rename on
+
+# =============================================================================
+# HELPER COMMANDS (called by keybindings)
+# =============================================================================
+
+# Show help overlay (display-popup for proper TTY)
+bind ? display-popup -d "#{pane_current_path}" "tmux-helper help-overlay"
+
+# Mode indicator
+set -g mode-keys vi
+
+# =============================================================================
+# PERFORMANCE TWEAKS
+# =============================================================================
+
+# Faster response
+set -sg escape-time 0
+set -sg repeat-time 300
+
+# History limit
+set -g history-limit 10000
+
+# =============================================================================
+# COPY MODE (vim-style)
+# =============================================================================
+
+bind -T copy-mode-vi v send -X begin-selection
+bind -T copy-mode-vi y send -X copy-selection-and-cancel
+bind -T copy-mode-vi Enter send -X copy-selection-and-cancel
+`
+
+	// Create template with custom functions
+	funcMap := template.FuncMap{
+		"vSize": func() int { return vSize },
+		"hSize": func() int { return hSize },
+	}
+	
+	t, err := template.New("tmux.conf").Funcs(funcMap).Parse(tmpl)
+	if err != nil {
+		return "", fmt.Errorf("template parse error: %w", err)
+	}
+	
+	var out strings.Builder
+	if err := t.Execute(&out, c); err != nil {
+		return "", fmt.Errorf("template execute error: %w", err)
+	}
+	
+	return out.String(), nil
+}
