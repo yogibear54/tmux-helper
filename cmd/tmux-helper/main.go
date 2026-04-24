@@ -22,6 +22,9 @@ func main() {
 	case "picker":
 		ui.RunPicker()
 
+	case "help-overlay", "overlay":
+		ui.RunHelp()
+
 	case "layout-next":
 		if err := client.NextLayout(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -29,8 +32,6 @@ func main() {
 		}
 
 	case "layout-prev":
-		// tmux doesn't have prev-layout, so we cycle through manually
-		// Could be implemented by tracking history
 		layout := client.GetCurrentLayout()
 		fmt.Println("Current layout:", layout)
 		fmt.Println("(Use layout-next to cycle)")
@@ -57,17 +58,19 @@ func printUsage() {
 	fmt.Println("")
 	fmt.Println("Commands:")
 	fmt.Println("  picker       Open interactive session picker")
+	fmt.Println("  help-overlay Show help in popup")
 	fmt.Println("  layout       Show current layout")
 	fmt.Println("  layout-next  Cycle to next layout")
 	fmt.Println("  sessions     List all sessions")
-	fmt.Println("  help         Show keybindings")
+	fmt.Println("  help         Show keybindings (text)")
 	fmt.Println("")
 	fmt.Println("Keybindings (Prefix: Ctrl-a):")
-	fmt.Println("  ?             Help")
-	fmt.Println("  h/j/k/l       Navigate panes (vim-style)")
-	fmt.Println("  \\             Split left (vertical)")
-	fmt.Println("  Space         Cycle layout")
+	fmt.Println("  ?             Help overlay")
 	fmt.Println("  F             Session picker")
+	fmt.Println("  h/j/k/l       Navigate panes (vim-style)")
+	fmt.Println("  |             Split left/right")
+	fmt.Println("  -             Split top/bottom")
+	fmt.Println("  Space         Cycle layout")
 	fmt.Println("  c             New window")
 	fmt.Println("  d             Detach")
 	fmt.Println("  x             Kill pane")
