@@ -3,6 +3,7 @@
 **An i3-inspired tmux experience with intuitive keybindings and a TUI session picker.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/)
 
 ## Overview
 
@@ -10,12 +11,13 @@ tmux-helper makes tmux more intuitive by bringing i3-window-manager-style keybin
 
 ## Features
 
-- 🎯 **Session/Window Quick Picker** - Fuzzy search and select sessions via TUI
+- 🎯 **Session/Window Quick Picker** - Interactive TUI with fuzzy search
 - 🔀 **Layout Cycling** - Cycle through pane layouts with a single key
 - 📐 **Direction-based Splits** - Split panes using Alt+h/j/k/l (i3-style)
 - 🖱️ **Mouse Support** - Click to select, drag to resize panes
 - ⌨️ **Vim-style Navigation** - Navigate panes with h/j/k/l
 - 🚀 **Single Binary** - No dependencies, just drop and run
+- 🎨 **Beautiful UI** - Purple/violet themed TUI with lipgloss
 
 ## Quick Start
 
@@ -69,13 +71,11 @@ tmux
 | `l` | Move to pane on the **right** |
 | `Ctrl-a + ?` | Show help overlay |
 
-### Direction-based Splits (Alt without prefix)
+### Splits (Prefix + key)
 | Key | Action |
 |-----|--------|
-| `Alt-h` | Split pane **left** (vertical split) |
-| `Alt-j` | Split pane **down** (horizontal split) |
-| `Alt-k` | Split pane **up** (horizontal split) |
-| `Alt-l` | Split pane **right** (vertical split) |
+| `Ctrl-a + \|` | Split left/right (vertical) |
+| `Ctrl-a + -` | Split top/bottom (horizontal) |
 
 ### Layout Cycling
 | Key | Action |
@@ -96,8 +96,6 @@ tmux
 | Key | Action |
 |-----|--------|
 | `Ctrl-a + !` | Break pane into new window |
-| `Ctrl-a + :` | Join pane into current window |
-| `Ctrl-a + z` | Zoom pane (toggle) |
 | `Ctrl-a + H/J/K/L` | Swap pane with adjacent |
 
 ### Copy Mode (Vim-style)
@@ -118,10 +116,37 @@ tmux
 ## Command Line Interface
 
 ```bash
-tmux-helper picker      # List sessions
-tmux-helper layout      # Show current layout
-tmux-helper help        # Show keybindings
+tmux-helper picker       # Open interactive TUI session picker
+tmux-helper sessions     # List all sessions (text output)
+tmux-helper layout       # Show current layout
+tmux-helper layout-next  # Cycle to next layout
+tmux-helper help         # Show keybindings reference
 ```
+
+## Session Picker (TUI)
+
+Press `Ctrl-a + F` to open the interactive session picker:
+
+```
+╭────────────────────────────────╮
+│   tmux-helper session picker   │
+│ 🔍 Filter sessions...           │
+│                                │
+│  ○ test1                       │
+│    └─ 0: zsh                   │
+│  ○ test2                       │
+│    └─ 0: editor                │
+│                                │
+╰────────────────────────────────╯
+ ↑↓ Navigate | Enter Select | Ctrl+U Clear | Esc Quit
+```
+
+**Features:**
+- Fuzzy search filtering
+- Session hierarchy with windows
+- Keyboard navigation (↑↓, Tab, Enter, Esc)
+- Mouse click to select
+- Attached session indicator (green)
 
 ## Configuration
 
@@ -143,25 +168,31 @@ mouse=true
 
 ```
 tmux-helper/
-├── cmd/tmux-helper/main.go     # CLI entry point
+├── cmd/tmux-helper/
+│   └── main.go              # CLI entry point
 ├── internal/
 │   ├── tmux/
-│   │   ├── client.go          # tmux CLI wrapper
-│   │   └── model.go           # Data models
+│   │   ├── client.go       # tmux CLI wrapper
+│   │   └── model.go        # Session/Window/Pane structs
 │   ├── config/
-│   │   └── config.go          # Configuration
+│   │   └── config.go       # Configuration system
 │   └── ui/
-│       └── common.go          # UI components
-├── .tmux.conf                  # tmux keybindings
+│       ├── common.go       # UI components
+│       └── picker.go       # Session picker TUI (Bubble Tea)
+├── .tmux.conf              # tmux keybindings
+├── go.mod
 └── README.md
 ```
 
 ### Components
 
-- **Client** - Wraps tmux CLI for session/window/pane operations
-- **Models** - Session, Window, Pane structs with parsers
-- **Config** - User preferences (split sizes, prefix key, etc.)
-- **UI** - Bubble Tea TUI for session picker (Phase 2)
+| Component | Description |
+|-----------|-------------|
+| **client.go** | Wraps tmux CLI for session/window/pane operations |
+| **model.go** | Session, Window, Pane structs with parsers |
+| **config.go** | User preferences (split sizes, prefix key, etc.) |
+| **picker.go** | Bubble Tea TUI for interactive session picking |
+| **.tmux.conf** | i3-inspired keybindings and mouse support |
 
 ## Development
 
@@ -171,23 +202,33 @@ tmux-helper/
 go build -o tmux-helper ./cmd/tmux-helper
 ```
 
-### Test
+### Run
 
 ```bash
-# Start a test session
-tmux new-session -d -s test
+# Start tmux with test sessions
+tmux new-session -d -s dev -n editor
+tmux new-session -d -s prod -n server
 
-# Run the picker
+# Open the session picker
 ./tmux-helper picker
 
-# Clean up
-tmux kill-session -t test
+# Or list sessions
+./tmux-helper sessions
 ```
+
+### Clean up
+
+```bash
+# Kill all sessions
+tmux kill-server
+```
+
+## Project Status
 
 ### Phases
 
 - [x] Phase 1: Foundation (Go project, tmux client, .tmux.conf)
-- [ ] Phase 2: Session/Window Quick Picker (TUI)
+- [x] Phase 2: Session/Window Quick Picker (Bubble Tea TUI)
 - [ ] Phase 3: Layout Cycling
 - [ ] Phase 4: Help Overlay
 - [ ] Phase 5: Configuration System
@@ -196,15 +237,15 @@ tmux kill-session -t test
 
 ## i3 Comparison
 
-| i3 | tmux-helper | Notes |
-|----|-------------|-------|
-| Mod+Enter | `Ctrl-a + c` | New window |
-| Mod+d | `Ctrl-a + d` | Detach |
-| Mod+h/j/k/l | `h/j/k/l` | Navigate panes |
-| Mod+shift+h/j/k/l | `Alt+h/j/k/l` | Split direction |
-| Mod+e | `Ctrl-a + Space` | Cycle layouts |
-| Mod+1-9 | `Ctrl-a + 1-9` | Switch windows |
-| Mod+w | `Ctrl-a + F` | Session picker (TUI) |
+| i3 Action | tmux-helper | Notes |
+|-----------|-------------|-------|
+| `Mod+Enter` | `Ctrl-a + c` | New window |
+| `Mod+d` | `Ctrl-a + d` | Detach |
+| `Mod+h/j/k/l` | `h/j/k/l` | Navigate panes |
+| `Mod+Shift+h/j/k/l` | `Alt+h/j/k/l` | Split direction |
+| `Mod+e` | `Ctrl-a + Space` | Cycle layouts |
+| `Mod+1-9` | `Ctrl-a + 1-9` | Switch windows |
+| `Mod+w` | `Ctrl-a + F` | Session picker (TUI) |
 
 ## Troubleshooting
 
@@ -228,6 +269,16 @@ tmux source-file ~/.tmux.conf
 # Enable mouse mode (should be on by default)
 tmux set -g mouse on
 ```
+
+### TUI picker won't open
+Make sure you're running inside tmux (the TUI requires a TTY). Launch from within an existing tmux session.
+
+## Dependencies
+
+- **Go 1.21+** - Required to build
+- **tmux** - Required to run
+- **Bubble Tea** - TUI framework (charmbracelet/bubbletea)
+- **Lipgloss** - Styling library (charmbracelet/lipgloss)
 
 ## License
 
